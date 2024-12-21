@@ -4,6 +4,7 @@ import com.example.stad.Common.DTOs.LoginDTO;
 import com.example.stad.Common.Entities.Token;
 import com.example.stad.Common.Entities.User;
 import com.example.stad.Common.Enums.Role;
+import com.example.stad.Core.Repositories.TokenRepository;
 import com.example.stad.Core.Repositories.UserRepository;
 import com.example.stad.WebApi.Security.JwtTokenUtil;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,9 @@ public class AuthenticationService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenUtil jwtTokenUtil;
+    private  final TokenRepository tokenRepository;
+    private final TokenService tokenService;
+
 
     public Token login(LoginDTO loginDTO) {
         // Fetch user from the database
@@ -30,10 +34,19 @@ public class AuthenticationService {
             throw new RuntimeException("Invalid credentials");
         }
 
-        // Generate JWT token
-        String token = jwtTokenUtil.generateToken(user);
-        return new Token(token);
+        // Revoke all existing tokens for the user
+        tokenRepository.findAll().stream()
+                .filter(t -> t.getUser().equals(user))
+                .forEach(t -> {
+                    t.setRevoked(true);
+                    tokenRepository.save(t);
+                });
+
+        // Generate and save a new token
+        String jwtToken = jwtTokenUtil.generateToken(user);
+        return tokenService.saveToken(jwtToken, user);
     }
+
 
     public void registerOwner(User user) {
         // Check if the user already exists
@@ -75,5 +88,11 @@ public class AuthenticationService {
 
         // Save user to the database
         userRepository.save(user);
+    }
+
+    public User extractUserFromToken(String token) {
+        String username = jwtTokenUtil.extractUsername(token);
+        return userRepository.findByEmailAddress(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
     }
 }

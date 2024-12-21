@@ -38,4 +38,11 @@ public class AuthenticationController {
         authenticationService.registerAdmin(user);
         return ResponseEntity.ok("User registered successfully");
     }
+
+    @GetMapping("/getUser")
+    public ResponseEntity<User> getUser(@RequestHeader("Authorization") String authorizationHeader) {
+        String token = authorizationHeader.replace("Bearer ", "");
+        User user = authenticationService.extractUserFromToken(token);
+        return ResponseEntity.ok(user);
+    }
 }

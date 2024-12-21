@@ -18,18 +18,16 @@ public class JwtTokenUtil {
         this.jwtConfig = jwtConfig;
     }
 
-    // Generate a token for a user
     public String generateToken(User user) {
         return Jwts.builder()
                 .setSubject(user.getEmailAddress())
                 .claim("roles", user.getRoles())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + jwtConfig.getExpiration()))
-                .signWith(SignatureAlgorithm.HS256, jwtConfig.getSecret().getBytes()) // Use secure key
+                .signWith(SignatureAlgorithm.HS256, jwtConfig.getSecret().getBytes())
                 .compact();
     }
 
-    // Extract the username (email) from the token
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
@@ -58,7 +56,7 @@ public class JwtTokenUtil {
 
     private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(jwtConfig.getSecret().getBytes()) // Use secure key
+                .setSigningKey(jwtConfig.getSecret().getBytes())
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
