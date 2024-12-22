@@ -4,6 +4,7 @@ import com.example.stad.Common.DTOs.LoginDTO;
 import com.example.stad.Common.Entities.Token;
 import com.example.stad.Common.Entities.User;
 import com.example.stad.Common.Enums.Role;
+import com.example.stad.Common.Responses.AuthenticationResponse;
 import com.example.stad.Core.Repositories.TokenRepository;
 import com.example.stad.Core.Repositories.UserRepository;
 import com.example.stad.WebApi.Security.JwtTokenUtil;
@@ -20,11 +21,10 @@ public class AuthenticationService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenUtil jwtTokenUtil;
-    private  final TokenRepository tokenRepository;
+    private final TokenRepository tokenRepository;
     private final TokenService tokenService;
 
-
-    public Token login(LoginDTO loginDTO) {
+    public AuthenticationResponse login(LoginDTO loginDTO) {
         // Fetch user from the database
         User user = userRepository.findByEmailAddress(loginDTO.getContactInfo())
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -42,52 +42,51 @@ public class AuthenticationService {
                     tokenRepository.save(t);
                 });
 
-        // Generate and save a new token
-        String jwtToken = jwtTokenUtil.generateToken(user);
-        return tokenService.saveToken(jwtToken, user);
+        // Generate tokens
+        String accessToken = jwtTokenUtil.generateToken(user);
+        String refreshToken = jwtTokenUtil.generateRefreshToken(user);
+
+        // Save the new tokens
+        tokenService.saveToken(accessToken, user);
+        tokenService.saveToken(refreshToken, user);
+
+        // Return the response
+        return AuthenticationResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .role(user.getRoles().get(0)) // Assuming a single role per user
+                .message("Login successful")
+                .build();
     }
 
-
-    public void registerOwner(User user) {
+    public AuthenticationResponse register(User user, Role role) {
         // Check if the user already exists
         if (userRepository.findByEmailAddress(user.getEmailAddress()).isPresent()) {
             throw new RuntimeException("Email already registered");
         }
 
-        // Set default role and encode password
-        user.setRoles(List.of(Role.OWNER)); // Default role is CUSTOMER
+        // Set role and encode password
+        user.setRoles(List.of(role));
         user.setPassword(passwordEncoder.encode(user.getPassword()));
 
         // Save user to the database
         userRepository.save(user);
-    }
 
-    public void registerCustomer(User user) {
-        // Check if the user already exists
-        if (userRepository.findByEmailAddress(user.getEmailAddress()).isPresent()) {
-            throw new RuntimeException("Email already registered");
-        }
+        // Generate tokens
+        String accessToken = jwtTokenUtil.generateToken(user);
+        String refreshToken = jwtTokenUtil.generateRefreshToken(user);
 
-        // Set default role and encode password
-        user.setRoles(List.of(Role.CUSTOMER)); // Default role is CUSTOMER
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        // Save the new tokens
+        tokenService.saveToken(accessToken, user);
+        tokenService.saveToken(refreshToken, user);
 
-        // Save user to the database
-        userRepository.save(user);
-    }
-
-    public void registerAdmin(User user) {
-        // Check if the user already exists
-        if (userRepository.findByEmailAddress(user.getEmailAddress()).isPresent()) {
-            throw new RuntimeException("Email already registered");
-        }
-
-        // Set default role and encode password
-        user.setRoles(List.of(Role.ADMIN)); // Default role is CUSTOMER
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-
-        // Save user to the database
-        userRepository.save(user);
+        // Return the response
+        return AuthenticationResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .role(role)
+                .message("Registration successful")
+                .build();
     }
 
     public User extractUserFromToken(String token) {

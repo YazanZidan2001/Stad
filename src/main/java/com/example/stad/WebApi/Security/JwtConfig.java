@@ -16,11 +16,15 @@ public class JwtConfig {
     @Value("${jwt.expiration}")
     private long expiration; // In milliseconds
 
+    @Value("${jwt.refresh-expiration}")
+    private long refreshExpiration; // In milliseconds
+
 
     @PostConstruct
     public void printConfig() {
         System.out.println("JWT Secret: " + secret);
         System.out.println("JWT Expiration: " + expiration);
+        System.out.println("JWT Refresh Expiration: " + refreshExpiration);
     }
 
 }
