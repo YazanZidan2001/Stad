@@ -4,43 +4,54 @@ import com.example.stad.Common.Entities.User;
 import com.example.stad.Common.Enums.Role;
 import com.example.stad.WebApi.Exceptions.UserNotFoundException;
 
-import java.util.EnumSet;
-
 public class SessionManagement {
 
-    // General method to validate a user against allowed roles
-    private void validateUserRole(User user, EnumSet<Role> allowedRoles) throws UserNotFoundException {
-        if (user == null || !allowedRoles.contains(user.getRoles())) {
+    // Validate if the logged-in user is ADMIN
+    public void validateLoggedInAdmin(User user) throws UserNotFoundException {
+        if (user.getRole() != Role.ADMIN) {
             throw new UserNotFoundException("You are not authorized to perform this operation");
         }
     }
 
-    // Specific validations using the general method
-    public void validateLoggedInAdmin(User user) throws UserNotFoundException {
-        validateUserRole(user, EnumSet.of(Role.ADMIN));
-    }
-
+    // Validate if the logged-in user is OWNER
     public void validateLoggedInOwner(User user) throws UserNotFoundException {
-        validateUserRole(user, EnumSet.of(Role.OWNER));
+        if (user.getRole() != Role.OWNER) {
+            throw new UserNotFoundException("You are not authorized to perform this operation");
+        }
     }
 
+    // Validate if the logged-in user is CUSTOMER
     public void validateLoggedInCustomer(User user) throws UserNotFoundException {
-        validateUserRole(user, EnumSet.of(Role.CUSTOMER));
+        if (user.getRole() != Role.CUSTOMER) {
+            throw new UserNotFoundException("You are not authorized to perform this operation");
+        }
     }
 
+    // Validate if the logged-in user is either CUSTOMER or OWNER
     public void validateLoggedInCustomerAndOwner(User user) throws UserNotFoundException {
-        validateUserRole(user, EnumSet.of(Role.CUSTOMER, Role.OWNER));
+        if (user.getRole() != Role.CUSTOMER && user.getRole() != Role.OWNER) {
+            throw new UserNotFoundException("You are not authorized to perform this operation");
+        }
     }
 
+    // Validate if the logged-in user is either OWNER or ADMIN
     public void validateLoggedInOwnerOrAdmin(User user) throws UserNotFoundException {
-        validateUserRole(user, EnumSet.of(Role.ADMIN, Role.OWNER));
+        if (user.getRole() != Role.ADMIN && user.getRole() != Role.OWNER) {
+            throw new UserNotFoundException("You are not authorized to perform this operation");
+        }
     }
 
+    // Validate if the logged-in user can perform check-in or check-out
     public void validateLoggedInCheckInOut(User user) throws UserNotFoundException {
-        validateUserRole(user, EnumSet.of(Role.ADMIN, Role.OWNER));
+        if (user.getRole() != Role.ADMIN && user.getRole() != Role.OWNER) {
+            throw new UserNotFoundException("You are not authorized to perform this operation");
+        }
     }
 
+    // Validate if the logged-in user is any valid role
     public void validateLoggedInAllUser(User user) throws UserNotFoundException {
-        validateUserRole(user, EnumSet.of(Role.ADMIN, Role.OWNER, Role.CUSTOMER));
+        if (user.getRole() != Role.ADMIN && user.getRole() != Role.OWNER && user.getRole() != Role.CUSTOMER) {
+            throw new UserNotFoundException("You are not authorized to perform this operation");
+        }
     }
 }

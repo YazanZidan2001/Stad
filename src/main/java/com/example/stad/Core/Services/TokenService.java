@@ -15,18 +15,14 @@ public class TokenService {
 
     private final TokenRepository tokenRepository;
 
-    // Save a new token
-    public Token saveToken(String jwtToken, User user) {
-        Token token = Token.builder()
-                .token(jwtToken)
-                .tokenType(TokenType.BEARER)
-                .revoked(false)
-                .expired(false)
-                .user(user)
-                .build();
-
-        return tokenRepository.save(token);
+    public void saveToken(String token, User user) {
+        Token newToken = new Token();
+        newToken.setToken(token);
+        newToken.setUser(user); // Associate the token with the user
+        newToken.setRevoked(false);
+        tokenRepository.save(newToken);
     }
+
 
     // Revoke a token
     public void revokeToken(String token) {

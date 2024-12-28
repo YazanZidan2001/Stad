@@ -16,7 +16,6 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @Data
 @Builder
@@ -66,5 +65,5 @@ public class User {
 
     @NotNull(message = "Roles cannot be null")
     @NotEmpty(message = "Roles cannot be empty")
-    private List<Role> roles; // List of roles (e.g., ADMIN, OWNER, CUSTOMER)
+    private Role role; // role : (e.g., ADMIN, OWNER, CUSTOMER)
 }

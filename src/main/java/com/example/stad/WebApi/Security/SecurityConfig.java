@@ -19,35 +19,25 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final CustomUserDetailsService userDetailsService;
 
     private static final String[] WHITE_LIST_URL = {
             "/auth/**",
-            "/admin/user/**",
-            "/v2/api-docs",
-            "/v3/api-docs",
-            "/v3/api-docs/**",
-            "http://127.0.0.1:5500/**",
-            "http://127.0.0.1:3000/**",
             "/swagger-ui/**",
-            "/swagger-ui.html",
-            "/resetPasswordPage"
+            "/v3/api-docs/**"
     };
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(req ->
-                        req.requestMatchers(WHITE_LIST_URL).permitAll() // Ensure whitelist is applied
-                                .anyRequest().authenticated()
+        http.csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(req -> req
+                        .requestMatchers(WHITE_LIST_URL).permitAll() // Public endpoints
+                        .anyRequest().authenticated() // All others require authentication
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
-
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -59,4 +49,5 @@ public class SecurityConfig {
         return configuration.getAuthenticationManager();
     }
 }
+
 

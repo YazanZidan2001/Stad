@@ -19,14 +19,19 @@ public class JwtTokenUtil {
     }
 
     public String generateToken(User user) {
+        if (user.getRole() == null) {
+            throw new IllegalStateException("Cannot generate token without user role");
+        }
+
         return Jwts.builder()
                 .setSubject(user.getEmailAddress())
-                .claim("roles", user.getRoles())
+                .claim("role", user.getRole().name())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + jwtConfig.getExpiration()))
                 .signWith(SignatureAlgorithm.HS256, jwtConfig.getSecret().getBytes())
                 .compact();
     }
+
 
     public String generateRefreshToken(User user) {
         return Jwts.builder()
@@ -48,8 +53,9 @@ public class JwtTokenUtil {
 
     public boolean validateToken(String token, String username) {
         final String extractedUsername = extractUsername(token);
-        return extractedUsername.equals(username) && !isTokenExpired(token);
+        return (extractedUsername.equals(username) && !isTokenExpired(token));
     }
+
 
     private boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
