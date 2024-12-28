@@ -6,16 +6,24 @@ import com.example.stad.Common.Enums.Role;
 import com.example.stad.Core.Services.AuthenticationService;
 import com.example.stad.Core.Services.StadiumService;
 import com.example.stad.SessionManagement;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -30,78 +38,108 @@ public class StadiumController extends SessionManagement {
     private final StadiumService stadiumService;
     private final AuthenticationService authenticationService;
 
-    @Value("${stadium.images.base-path}")
-    private String folderPath;
+    private static final String uploadDir="uploads/";
 
     @PostConstruct
-    public void ensureDirectoryExists() {
-        File folder = new File(folderPath);
-        if (!folder.exists() && !folder.mkdirs()) {
-            throw new RuntimeException("Failed to create directory: " + folderPath);
+    public void ensureUploadDirectoryExists() {
+        try {
+            Files.createDirectories(Paths.get(uploadDir));
+        } catch (IOException e) {
+            throw new RuntimeException("Could not create upload directory", e);
+        }
+    }
+
+    @PostMapping("/uploadImage")
+    public ResponseEntity<String> uploadStadiumImage(@RequestParam("image") MultipartFile file) {
+        try {
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest().body("File is empty");
+            }
+
+            // Generate unique file name
+            String fileName = UUID.randomUUID() + "-" + file.getOriginalFilename();
+            Path filePath = Paths.get(uploadDir, fileName);
+
+            // Save the file
+            Files.write(filePath, file.getBytes());
+
+            // Construct the URL to access the image
+            String imageUrl = "/uploads/" + fileName;
+
+            return ResponseEntity.ok(imageUrl);
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().body("Failed to upload image");
+        }
+    }
+
+    @GetMapping("/uploads/{fileName}")
+    public ResponseEntity<Resource> serveImage(@PathVariable String fileName) {
+        try {
+            Path filePath = Paths.get(uploadDir).resolve(fileName).normalize();
+            Resource resource = new UrlResource(filePath.toUri());
+
+            if (!resource.exists()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            String contentType = Files.probeContentType(filePath);
+            if (contentType == null) {
+                contentType = "application/octet-stream";
+            }
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
+                    .body(resource);
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().build();
         }
     }
 
     @PostMapping("/owner/add")
     public ResponseEntity<Stadium> addStadium(
-            @RequestPart("stadium") Stadium stadium,
+            @RequestPart("stadium") String stadiumJson, // Use String here for raw JSON
             @RequestPart("mainImage") MultipartFile mainImage,
             @RequestPart(value = "additionalImages", required = false) List<MultipartFile> additionalImages,
-            HttpServletRequest request) throws IOException {
+            HttpServletRequest request) {
+        try {
+            // Parse JSON string to Stadium object
+            Stadium stadium = new ObjectMapper().readValue(stadiumJson, Stadium.class);
 
-        // Debugging Logs
-        System.out.println("Content-Type: " + request.getContentType());
-        System.out.println("Stadium Data: " + stadium);
-        System.out.println("Main Image Name: " + mainImage.getOriginalFilename());
-        if (additionalImages != null) {
-            System.out.println("Additional Images Count: " + additionalImages.size());
-        }
+            // Validate the user
+            String token = authenticationService.extractToken(request);
+            User user = authenticationService.extractUserFromToken(token);
+            validateLoggedInOwner(user);
 
-        // Extract User and Validate Ownership
-        String token = authenticationService.extractToken(request);
-        User user = authenticationService.extractUserFromToken(token);
-        validateLoggedInOwner(user);
+            // Validate main image
+            if (mainImage == null || mainImage.isEmpty()) {
+                throw new IllegalArgumentException("Main image is required.");
+            }
 
-        // Validate images
-        if (mainImage == null || mainImage.isEmpty()) {
-            throw new IllegalArgumentException("Main image is required.");
-        }
-
-        // Save images and get URLs
-        String mainImageUrl = saveImage(mainImage, "main");
-        List<String> additionalImageUrls = saveImages(additionalImages);
-
-        // Set Stadium Properties
-        stadium.setMainImage(mainImageUrl);
-        stadium.setAdditionalImages(additionalImageUrls);
-        stadium.setOwnerId(user.getId());
-
-        // Save Stadium
-        Stadium savedStadium = stadiumService.addStadium(stadium, user.getId());
-        return ResponseEntity.ok(savedStadium);
-    }
-
-    private String saveImage(MultipartFile image, String type) throws IOException {
-        String fileName = type + "_" + UUID.randomUUID() + "_" + image.getOriginalFilename();
-        File file = new File(folderPath + fileName);
-
-        if (!file.getParentFile().exists() && !file.getParentFile().mkdirs()) {
-            throw new IOException("Failed to create directory for image storage.");
-        }
-
-        image.transferTo(file);
-        return "/images/stadiums/" + fileName;
-    }
-
-    private List<String> saveImages(List<MultipartFile> images) throws IOException {
-        List<String> imageUrls = new ArrayList<>();
-        if (images != null) {
-            for (MultipartFile image : images) {
-                if (!image.isEmpty()) {
-                    imageUrls.add(saveImage(image, "additional"));
+            // Upload images
+            String mainImageUrl = uploadStadiumImage(mainImage).getBody();
+            List<String> additionalImageUrls = new ArrayList<>();
+            if (additionalImages != null) {
+                for (MultipartFile image : additionalImages) {
+                    if (!image.isEmpty()) {
+                        additionalImageUrls.add(uploadStadiumImage(image).getBody());
+                    }
                 }
             }
+
+            // Set Stadium properties
+            stadium.setMainImage(mainImageUrl);
+            stadium.setAdditionalImages(additionalImageUrls);
+            stadium.setOwnerId(user.getId());
+
+            // Save stadium
+            Stadium savedStadium = stadiumService.addStadium(stadium, user.getId());
+
+            return ResponseEntity.ok(savedStadium);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
         }
-        return imageUrls;
     }
 
 
