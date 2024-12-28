@@ -1,6 +1,5 @@
 package com.example.stad.WebApi.Security;
 
-import com.example.stad.Core.Repositories.UserRepository;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -22,31 +21,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenUtil jwtTokenUtil;
     private final CustomUserDetailsService userDetailsService;
-    private final UserRepository userRepository;
-
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         final String header = request.getHeader("Authorization");
 
-        // Check for missing or malformed header
+        // Log the received header
+        System.out.println("Authorization Header: " + header);
+
         if (header == null || !header.startsWith("Bearer ")) {
-            chain.doFilter(request, response); // Continue without authentication
+            chain.doFilter(request, response);
             return;
         }
 
         final String jwtToken = header.substring(7);
-        final String username;
 
         try {
-            username = jwtTokenUtil.extractUsername(jwtToken);
+            String username = jwtTokenUtil.extractUsername(jwtToken);
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                CustomUserDetails userDetails = userRepository.findByEmailAddress(username)
-                        .map(CustomUserDetails::new)
-                        .orElseThrow(() -> new RuntimeException("User not found"));
+                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                if (jwtTokenUtil.validateToken(jwtToken, String.valueOf(userDetails))) {
+                if (jwtTokenUtil.validateToken(jwtToken, userDetails.getUsername())) {
                     UsernamePasswordAuthenticationToken authToken =
                             new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
@@ -54,12 +50,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         } catch (Exception e) {
-            // Log and continue without setting authentication
-            logger.warn("JWT validation failed: " + e.getMessage());
+            logger.error("Error processing JWT", e);
         }
 
         chain.doFilter(request, response);
     }
 
-}
 
+
+}

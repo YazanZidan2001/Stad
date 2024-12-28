@@ -24,7 +24,7 @@ public class UserService {
                 .fullName("Admin User")
                 .emailAddress("admin@example.com")
                 .password(passwordEncoder.encode("admin123")) // Encrypt the password
-                .roles(List.of(Role.ADMIN)) // Assign the ADMIN role
+                .role(Role.ADMIN) // Assign the ADMIN role
                 .build();
 
         userRepository.save(adminUser);
