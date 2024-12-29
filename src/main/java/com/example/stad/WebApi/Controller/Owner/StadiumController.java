@@ -96,6 +96,38 @@ public class StadiumController extends SessionManagement {
         }
     }
 
+
+    private String saveImageWithCustomName(MultipartFile image, String stadiumName, String ownerId, String type) throws IOException {
+        // Validate and extract the file extension from the original file name
+        String originalFileName = image.getOriginalFilename();
+        if (originalFileName == null || !originalFileName.contains(".")) {
+            throw new IllegalArgumentException("Invalid file type. The file must have an extension.");
+        }
+        String fileExtension = originalFileName.substring(originalFileName.lastIndexOf(".")).toLowerCase();
+
+        // Create a sanitized stadium name to prevent illegal characters in the filename
+        String sanitizedStadiumName = stadiumName.replaceAll("[^a-zA-Z0-9_-]", "_");
+
+        // Generate the new file name
+        String fileName = sanitizedStadiumName + "_" + ownerId + "_" + type + fileExtension;
+
+        // Construct the file path
+        Path filePath = Paths.get(uploadDir, fileName);
+
+        // Ensure the directories exist
+        if (!Files.exists(filePath.getParent())) {
+            Files.createDirectories(filePath.getParent());
+        }
+
+        // Save the file
+        Files.write(filePath, image.getBytes());
+
+        // Return the relative URL
+        return "/uploads/" + fileName;
+    }
+
+
+
     @PostMapping("/owner/add")
     public ResponseEntity<Stadium> addStadium(
             @RequestPart("stadium") String stadiumJson, // Use String here for raw JSON
@@ -116,16 +148,18 @@ public class StadiumController extends SessionManagement {
                 throw new IllegalArgumentException("Main image is required.");
             }
 
-            // Upload images
-            String mainImageUrl = uploadStadiumImage(mainImage).getBody();
+            // Upload main image with custom name
+            String mainImageUrl = saveImageWithCustomName(mainImage, stadium.getName(), user.getId(), "main");
             List<String> additionalImageUrls = new ArrayList<>();
             if (additionalImages != null) {
-                for (MultipartFile image : additionalImages) {
+                for (int i = 0; i < additionalImages.size(); i++) {
+                    MultipartFile image = additionalImages.get(i);
                     if (!image.isEmpty()) {
-                        additionalImageUrls.add(uploadStadiumImage(image).getBody());
+                        additionalImageUrls.add(saveImageWithCustomName(image, stadium.getName(), user.getId(), "additional_" + (i + 1)));
                     }
                 }
             }
+
 
             // Set Stadium properties
             stadium.setMainImage(mainImageUrl);
@@ -141,6 +175,7 @@ public class StadiumController extends SessionManagement {
             return ResponseEntity.internalServerError().build();
         }
     }
+
 
 
     // Owner fetches all their stadiums
