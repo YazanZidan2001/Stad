@@ -1,9 +1,10 @@
 package com.example.stad.WebApi.Controller.Owner;
 
-import com.example.stad.Common.Entities.Stadium;
-import com.example.stad.Common.Entities.User;
+import com.example.stad.Common.Entities.*;
 import com.example.stad.Common.Enums.Role;
 import com.example.stad.Core.Services.AuthenticationService;
+import com.example.stad.Core.Services.ReservationService;
+import com.example.stad.Core.Services.StadiumScheduleService;
 import com.example.stad.Core.Services.StadiumService;
 import com.example.stad.SessionManagement;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,6 +25,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -31,14 +33,17 @@ import java.util.UUID;
 
 @CrossOrigin(origins = "*")
 @RestController
-@RequestMapping("/stadium")
+@RequestMapping("/owner")
 @RequiredArgsConstructor
 public class StadiumController extends SessionManagement {
 
     private final StadiumService stadiumService;
     private final AuthenticationService authenticationService;
+    private final StadiumScheduleService scheduleService;
+    private final ReservationService reservationService;
 
-    private static final String uploadDir="uploads/";
+
+    private static final String uploadDir = "uploads/";
 
     @PostConstruct
     public void ensureUploadDirectoryExists() {
@@ -127,8 +132,7 @@ public class StadiumController extends SessionManagement {
     }
 
 
-
-    @PostMapping("/owner/add")
+    @PostMapping("/add-stadium")
     public ResponseEntity<Stadium> addStadium(
             @RequestPart("stadium") String stadiumJson, // Use String here for raw JSON
             @RequestPart("mainImage") MultipartFile mainImage,
@@ -177,9 +181,8 @@ public class StadiumController extends SessionManagement {
     }
 
 
-
     // Owner fetches all their stadiums
-    @GetMapping("/owner/all")
+    @GetMapping("/all-stadium")
     public ResponseEntity<List<Stadium>> getAllStadiums(HttpServletRequest request) {
         String token = authenticationService.extractToken(request);
         User owner = authenticationService.extractUserFromToken(token);
@@ -189,7 +192,7 @@ public class StadiumController extends SessionManagement {
     }
 
     // Owner searches their stadiums
-    @GetMapping("/owner/search")
+    @GetMapping("/search-stadium")
     public ResponseEntity<List<Stadium>> searchStadiums(
             @RequestParam("query") String query, HttpServletRequest request) {
         String token = authenticationService.extractToken(request);
@@ -199,47 +202,19 @@ public class StadiumController extends SessionManagement {
         return ResponseEntity.ok(stadiums);
     }
 
-    // Admin approves a stadium
-    @PutMapping("/admin/approve/{stadiumId}")
-    public ResponseEntity<Stadium> approveStadium(
-            @PathVariable String stadiumId, HttpServletRequest request) {
-        String token = authenticationService.extractToken(request);
-        User admin = authenticationService.extractUserFromToken(token);
-        validateLoggedInAdmin(admin);
-        Stadium approvedStadium = stadiumService.approveStadium(stadiumId, admin.getId());
-        return ResponseEntity.ok(approvedStadium);
-    }
-
-    // Admin cancels a stadium
-    @PutMapping("/admin/cancel/{stadiumId}")
-    public ResponseEntity<Stadium> cancelStadium(
-            @PathVariable String stadiumId, HttpServletRequest request) {
-        String token = authenticationService.extractToken(request);
-        User admin = authenticationService.extractUserFromToken(token);
-        validateLoggedInAdmin(admin);
-        Stadium canceledStadium = stadiumService.cancelStadium(stadiumId, admin.getId());
-        return ResponseEntity.ok(canceledStadium);
-    }
-
-    // Admin fetches all stadiums
-    @GetMapping("/admin/all")
-    public ResponseEntity<List<Stadium>> getAllStadiumsForAdmin(HttpServletRequest request) {
-        String token = authenticationService.extractToken(request);
-        User admin = authenticationService.extractUserFromToken(token);
-        validateLoggedInAdmin(admin);
-        List<Stadium> stadiums = stadiumService.getAllStadiums();
-        return ResponseEntity.ok(stadiums);
-    }
 
     // Get stadium details by ID
-    @GetMapping("/{stadiumId}")
-    public ResponseEntity<Stadium> getStadiumById(@PathVariable String stadiumId) {
+    @GetMapping("/get-stadium/{stadiumId}")
+    public ResponseEntity<Stadium> getStadiumById(@PathVariable String stadiumId, HttpServletRequest request) {
+        String token = authenticationService.extractToken(request);
+        User admin = authenticationService.extractUserFromToken(token);
+        validateLoggedInAllUser(admin);
         Stadium stadium = stadiumService.getStadiumById(stadiumId);
         return ResponseEntity.ok(stadium);
     }
 
     // Owner deletes a stadium
-    @DeleteMapping("/owner/delete/{stadiumId}")
+    @DeleteMapping("/delete-stadium/{stadiumId}")
     public ResponseEntity<String> deleteStadium(
             @PathVariable String stadiumId, HttpServletRequest request) {
         String token = authenticationService.extractToken(request);

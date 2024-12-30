@@ -61,4 +61,6 @@ public class Stadium {
     private String ownerId; // Reference to the User (OWNER)
 
     private String adminId; // Reference to the admin who approved/rejected the stadium
+
+
 }

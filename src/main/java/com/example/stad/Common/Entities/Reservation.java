@@ -8,12 +8,14 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.LocalDate;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collection = "stadium_statistics")
-public class StadiumStatistics {
+@Document(collection = "reservations")
+public class Reservation {
 
     @Id
     private String id;
@@ -21,8 +23,17 @@ public class StadiumStatistics {
     @NotNull
     private String stadiumId;
 
-    private int totalBookings;
+    @NotNull
+    private String userId;
 
-    private double totalRevenue;
+    @NotNull
+    private LocalDate date;
+
+    @NotNull
+    private String startTime; // e.g., "10:00"
+
+    @NotNull
+    private String endTime;   // e.g., "11:00"
+
+    private boolean canceled;
 }
-

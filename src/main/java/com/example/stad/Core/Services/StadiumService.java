@@ -1,11 +1,13 @@
 package com.example.stad.Core.Services;
 
+import com.example.stad.Common.Entities.Reservation;
 import com.example.stad.Common.Entities.Stadium;
 import com.example.stad.Common.Enums.StadiumStatus;
 import com.example.stad.Core.Repositories.StadiumRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -13,6 +15,7 @@ import java.util.List;
 public class StadiumService {
 
     private final StadiumRepository stadiumRepository;
+    private List<Reservation> reservations = new ArrayList<>();
 
     // Owner adds a new stadium
     public Stadium addStadium(Stadium stadium, String ownerId) {
@@ -73,4 +76,12 @@ public class StadiumService {
 
         stadiumRepository.delete(stadium);
     }
+
+
+
+
+    public Stadium save(Stadium stadium) {
+        return stadiumRepository.save(stadium);
+    }
+
 }
