@@ -91,7 +91,7 @@ public class StadiumScheduleController extends SessionManagement {
         return ResponseEntity.ok(availability);
     }
 
-    @DeleteMapping("/cancel-reservation/{reservationId}")
+    @PutMapping("/cancel-reservation/{reservationId}")
     public ResponseEntity<String> cancelReservation(@PathVariable String reservationId, HttpServletRequest request) {
         String token = authenticationService.extractToken(request);
         User owner = authenticationService.extractUserFromToken(token);

@@ -76,7 +76,7 @@ public class CustomerController extends SessionManagement {
         return ResponseEntity.ok(schedules);
     }
 
-    @DeleteMapping("/cancel-reservation/{reservationId}")
+    @PutMapping("/cancel-reservation/{reservationId}")
     public ResponseEntity<String> cancelReservation(@PathVariable String reservationId, HttpServletRequest request) {
         String token = authenticationService.extractToken(request);
         User customer = authenticationService.extractUserFromToken(token);
