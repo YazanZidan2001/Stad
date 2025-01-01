@@ -75,4 +75,14 @@ public class CustomerController extends SessionManagement {
         List<Schedule> schedules = scheduleService.getSchedulesForStadium(stadiumId);
         return ResponseEntity.ok(schedules);
     }
+
+    @DeleteMapping("/cancel-reservation/{reservationId}")
+    public ResponseEntity<String> cancelReservation(@PathVariable String reservationId, HttpServletRequest request) {
+        String token = authenticationService.extractToken(request);
+        User customer = authenticationService.extractUserFromToken(token);
+        validateLoggedInCustomer(customer);
+
+        reservationService.cancelReservationByCustomer(reservationId, customer.getId());
+        return ResponseEntity.ok("Reservation canceled successfully");
+    }
 }

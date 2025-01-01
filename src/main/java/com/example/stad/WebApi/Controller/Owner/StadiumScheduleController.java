@@ -90,5 +90,15 @@ public class StadiumScheduleController extends SessionManagement {
         List<String> availability = reservationService.getHourlyAvailability(stadiumId, date);
         return ResponseEntity.ok(availability);
     }
+
+    @DeleteMapping("/cancel-reservation/{reservationId}")
+    public ResponseEntity<String> cancelReservation(@PathVariable String reservationId, HttpServletRequest request) {
+        String token = authenticationService.extractToken(request);
+        User owner = authenticationService.extractUserFromToken(token);
+        validateLoggedInOwner(owner);
+
+        reservationService.cancelReservationByOwner(reservationId);
+        return ResponseEntity.ok("Reservation canceled successfully by owner");
+    }
 }
 

@@ -68,8 +68,9 @@ public class ReservationService {
             currentTime = currentTime.plusHours(1);
         }
 
-        // Mark reserved slots
+        // Mark reserved slots (exclude canceled reservations)
         List<String> reservedSlots = reservations.stream()
+                .filter(reservation -> !reservation.isCanceled()) // Exclude canceled reservations
                 .map(reservation -> reservation.getStartTime() + " - " + reservation.getEndTime())
                 .collect(Collectors.toList());
 
@@ -77,6 +78,7 @@ public class ReservationService {
                 .map(slot -> reservedSlots.contains(slot) ? slot + " (Reserved)" : slot + " (Available)")
                 .collect(Collectors.toList());
     }
+
 
 
     public Reservation createReservation(Reservation reservation) {
@@ -93,5 +95,32 @@ public class ReservationService {
 
     public List<Reservation> getReservationsForUser(String userId) {
         return reservationRepository.findByUserId(userId);
+    }
+
+
+    public void cancelReservationByCustomer(String reservationId, String userId) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new RuntimeException("Reservation not found"));
+
+        if (!reservation.getUserId().equals(userId)) {
+            throw new RuntimeException("You are not authorized to cancel this reservation");
+        }
+
+        reservation.setCanceled(true);
+        reservationRepository.save(reservation);
+    }
+
+    // Cancel reservation by owner
+    public void cancelReservationByOwner(String reservationId) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new RuntimeException("Reservation not found"));
+
+        reservation.setCanceled(true);
+        reservationRepository.save(reservation);
+    }
+
+    // Fetch all reservations for a stadium and date
+    public List<Reservation> getReservationsForStadiumAndDate(String stadiumId, LocalDate date) {
+        return reservationRepository.findByStadiumIdAndDate(stadiumId, date);
     }
 }
