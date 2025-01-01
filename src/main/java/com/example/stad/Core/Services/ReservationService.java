@@ -98,13 +98,10 @@ public class ReservationService {
     }
 
 
-    public void cancelReservationByCustomer(String reservationId, String userId) {
+    public void cancelReservationByCustomer(String reservationId) {
         Reservation reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new RuntimeException("Reservation not found"));
 
-        if (!reservation.getUserId().equals(userId)) {
-            throw new RuntimeException("You are not authorized to cancel this reservation");
-        }
 
         reservation.setCanceled(true);
         reservationRepository.save(reservation);

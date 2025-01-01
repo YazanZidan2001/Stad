@@ -4,6 +4,7 @@ import com.example.stad.Common.Entities.Reservation;
 import com.example.stad.Common.Entities.Schedule;
 import com.example.stad.Common.Entities.Stadium;
 import com.example.stad.Common.Entities.User;
+import com.example.stad.Core.Repositories.ReservationRepository;
 import com.example.stad.Core.Services.AuthenticationService;
 import com.example.stad.Core.Services.ReservationService;
 import com.example.stad.Core.Services.StadiumScheduleService;
@@ -16,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@CrossOrigin(origins = "*")
+@CrossOrigin
 @RestController
 @RequestMapping("/customer")
 @RequiredArgsConstructor
@@ -26,6 +27,7 @@ public class CustomerController extends SessionManagement {
     private final AuthenticationService authenticationService;
     private final StadiumService stadiumService;
     private  final StadiumScheduleService scheduleService;
+    private final ReservationRepository reservationRepository;
 
     @PostMapping("/reserve")
     public ResponseEntity<Reservation> reserveStadium(@RequestBody Reservation reservation,HttpServletRequest request) {
@@ -82,7 +84,13 @@ public class CustomerController extends SessionManagement {
         User customer = authenticationService.extractUserFromToken(token);
         validateLoggedInCustomer(customer);
 
-        reservationService.cancelReservationByCustomer(reservationId, customer.getId());
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new RuntimeException("Reservation not found"));
+        if (!reservation.getUserId().equals(customer.getId())) {
+            throw new RuntimeException("You are not authorized to cancel this reservation");
+        }
+
+        reservationService.cancelReservationByCustomer(reservationId);
         return ResponseEntity.ok("Reservation canceled successfully");
     }
 }
