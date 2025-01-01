@@ -87,7 +87,7 @@ public class StadiumScheduleController extends SessionManagement {
 
     @GetMapping("/stadium/availability/{stadiumId}")
     public ResponseEntity<List<String>> getHourlyAvailability(@PathVariable String stadiumId, @RequestParam LocalDate date) {
-        List<String> availability = reservationService.getHourlyAvailability(stadiumId, date);
+        List<String> availability = reservationService.getHourlyAvailabilityWithDetails(stadiumId, date);
         return ResponseEntity.ok(availability);
     }
 

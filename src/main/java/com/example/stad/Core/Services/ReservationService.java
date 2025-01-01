@@ -20,7 +20,7 @@ public class ReservationService {
     private final ReservationRepository reservationRepository;
     private final StadiumScheduleService scheduleService;
 
-    public List<String> getHourlyAvailability(String stadiumId, LocalDate date) {
+    public List<String> getHourlyAvailabilityWithDetails(String stadiumId, LocalDate date) {
         // Fetch schedules and overrides for the stadium
         List<Schedule> schedules = scheduleService.getSchedulesForStadium(stadiumId);
         List<DateOverride> overrides = scheduleService.getOverridesForStadium(stadiumId);
@@ -59,31 +59,46 @@ public class ReservationService {
             endTime = LocalTime.parse(matchingSchedule.getEndTime());
         }
 
-        // Generate hourly slots
+        // Generate hourly slots with reservation details
         List<String> hourlySlots = new ArrayList<>();
         LocalTime currentTime = startTime;
+
         while (currentTime.isBefore(endTime)) {
-            String slot = currentTime.toString() + " - " + currentTime.plusHours(1).toString();
-            hourlySlots.add(slot);
+            String slotStartTime = currentTime.toString();
+            String slotEndTime = currentTime.plusHours(1).toString();
+            String slot = slotStartTime + " - " + slotEndTime;
+
+            // Find a reservation for the current slot
+            Reservation reservedSlot = reservations.stream()
+                    .filter(reservation -> reservation.getStartTime().equals(slotStartTime) &&
+                            reservation.getEndTime().equals(slotEndTime) &&
+                            !reservation.isCanceled())
+                    .findFirst()
+                    .orElse(null);
+
+            if (reservedSlot != null) {
+                hourlySlots.add(slot + " (Reserved)");
+                // Add reservation details
+                hourlySlots.add("    Reservation Details:");
+                hourlySlots.add("        Reservation ID: " + reservedSlot.getId());
+                hourlySlots.add("        User ID: " + reservedSlot.getUserId());
+                hourlySlots.add("        Stadium ID: " + reservedSlot.getStadiumId());
+                hourlySlots.add("        Date: " + reservedSlot.getDate());
+            } else {
+                hourlySlots.add(slot + " (Available)");
+            }
+
             currentTime = currentTime.plusHours(1);
         }
 
-        // Mark reserved slots (exclude canceled reservations)
-        List<String> reservedSlots = reservations.stream()
-                .filter(reservation -> !reservation.isCanceled()) // Exclude canceled reservations
-                .map(reservation -> reservation.getStartTime() + " - " + reservation.getEndTime())
-                .collect(Collectors.toList());
-
-        return hourlySlots.stream()
-                .map(slot -> reservedSlots.contains(slot) ? slot + " (Reserved)" : slot + " (Available)")
-                .collect(Collectors.toList());
+        return hourlySlots;
     }
 
 
 
     public Reservation createReservation(Reservation reservation) {
         // Check if the requested slot is available
-        List<String> availability = getHourlyAvailability(reservation.getStadiumId(), reservation.getDate());
+        List<String> availability = getHourlyAvailabilityWithDetails(reservation.getStadiumId(), reservation.getDate());
         String requestedSlot = reservation.getStartTime() + " - " + reservation.getEndTime();
 
         if (availability.stream().noneMatch(slot -> slot.equals(requestedSlot + " (Available)"))) {
