@@ -78,6 +78,13 @@ public class StadiumService {
     }
 
 
+    public List<Stadium> searchStadiums(String search) {
+        if (search == null || search.isEmpty()) {
+            // Return all stadiums if no search query is provided
+            return stadiumRepository.findAll();
+        }
+        return stadiumRepository.searchStadiums(search);
+    }
 
 
     public Stadium save(Stadium stadium) {

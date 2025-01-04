@@ -93,4 +93,10 @@ public class CustomerController extends SessionManagement {
         reservationService.cancelReservationByCustomer(reservationId);
         return ResponseEntity.ok("Reservation canceled successfully");
     }
+
+    @GetMapping("/search-stadiums")
+    public ResponseEntity<List<Stadium>> searchStadiums(@RequestParam(required = false) String search) {
+        List<Stadium> stadiums = stadiumService.searchStadiums(search);
+        return ResponseEntity.ok(stadiums);
+    }
 }
