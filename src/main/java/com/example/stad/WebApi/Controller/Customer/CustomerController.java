@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @CrossOrigin
@@ -98,5 +99,14 @@ public class CustomerController extends SessionManagement {
     public ResponseEntity<List<Stadium>> searchStadiums(@RequestParam(required = false) String search) {
         List<Stadium> stadiums = stadiumService.searchStadiums(search);
         return ResponseEntity.ok(stadiums);
+    }
+
+    @GetMapping("/stadium/availability/{stadiumId}")
+    public ResponseEntity<List<String>> getHourlyAvailability(@PathVariable String stadiumId, @RequestParam LocalDate date, HttpServletRequest request) {
+        String token = authenticationService.extractToken(request);
+        User customer = authenticationService.extractUserFromToken(token);
+        validateLoggedInCustomer(customer);
+        List<String> availability = reservationService.getHourlyAvailabilityWithDetails(stadiumId, date);
+        return ResponseEntity.ok(availability);
     }
 }
