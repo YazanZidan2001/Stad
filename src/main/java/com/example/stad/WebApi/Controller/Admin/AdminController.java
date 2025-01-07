@@ -1,5 +1,6 @@
 package com.example.stad.WebApi.Controller.Admin;
 
+import com.example.stad.Common.DTOs.StadiumWithOwnerDTO;
 import com.example.stad.Common.Entities.Schedule;
 import com.example.stad.Common.Entities.Stadium;
 import com.example.stad.Common.Entities.User;
@@ -79,5 +80,33 @@ public class AdminController extends SessionManagement {
         validateLoggedInAllUser(admin);
         List<Schedule> schedules = scheduleService.getSchedulesForStadium(stadiumId);
         return ResponseEntity.ok(schedules);
+    }
+
+    // Fetch PENDING stadiums
+    @GetMapping("/stadiums/pending")
+    public ResponseEntity<List<Stadium>> getPendingStadiums() {
+        List<Stadium> stadiums = stadiumService.getPendingStadiums();
+        return ResponseEntity.ok(stadiums);
+    }
+
+    // Fetch APPROVED stadiums
+    @GetMapping("/stadiums/approved")
+    public ResponseEntity<List<Stadium>> getApprovedStadiums() {
+        List<Stadium> stadiums = stadiumService.getApprovedStadiums();
+        return ResponseEntity.ok(stadiums);
+    }
+
+    // Fetch REJECTED stadiums
+    @GetMapping("/stadiums/rejected")
+    public ResponseEntity<List<Stadium>> getRejectedStadiums() {
+        List<Stadium> stadiums = stadiumService.getRejectedStadiums();
+        return ResponseEntity.ok(stadiums);
+    }
+
+    // Fetch stadium details with owner info
+    @GetMapping("/stadiums/{stadiumId}")
+    public ResponseEntity<StadiumWithOwnerDTO> getStadiumWithOwner(@PathVariable String stadiumId) {
+        StadiumWithOwnerDTO stadiumWithOwner = stadiumService.getStadiumWithOwnerDTO(stadiumId);
+        return ResponseEntity.ok(stadiumWithOwner);
     }
 }

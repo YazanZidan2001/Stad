@@ -10,6 +10,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.List;
@@ -59,6 +60,7 @@ public class Stadium {
 
     @NotNull
     private String ownerId; // Reference to the User (OWNER)
+
 
     private String adminId; // Reference to the admin who approved/rejected the stadium
 

@@ -1,9 +1,12 @@
 package com.example.stad.Core.Services;
 
+import com.example.stad.Common.DTOs.StadiumWithOwnerDTO;
 import com.example.stad.Common.Entities.Reservation;
 import com.example.stad.Common.Entities.Stadium;
+import com.example.stad.Common.Entities.User;
 import com.example.stad.Common.Enums.StadiumStatus;
 import com.example.stad.Core.Repositories.StadiumRepository;
+import com.example.stad.Core.Repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +19,7 @@ public class StadiumService {
 
     private final StadiumRepository stadiumRepository;
     private List<Reservation> reservations = new ArrayList<>();
+    private final UserRepository userRepository; // Inject UserRepository
 
     // Owner adds a new stadium
     public Stadium addStadium(Stadium stadium, String ownerId) {
@@ -90,5 +94,33 @@ public class StadiumService {
     public Stadium save(Stadium stadium) {
         return stadiumRepository.save(stadium);
     }
+
+    // Fetch PENDING stadiums
+    public List<Stadium> getPendingStadiums() {
+        return stadiumRepository.findByStatus(StadiumStatus.PENDING);
+    }
+
+    // Fetch APPROVED stadiums
+    public List<Stadium> getApprovedStadiums() {
+        return stadiumRepository.findByStatus(StadiumStatus.APPROVED);
+    }
+
+    // Fetch REJECTED stadiums
+    public List<Stadium> getRejectedStadiums() {
+        return stadiumRepository.findByStatus(StadiumStatus.REJECTED);
+    }
+
+    // Fetch stadium details with owner info
+    public StadiumWithOwnerDTO getStadiumWithOwnerDTO(String stadiumId) {
+        Stadium stadium = stadiumRepository.findById(stadiumId)
+                .orElseThrow(() -> new RuntimeException("Stadium not found"));
+
+        User owner = userRepository.findById(stadium.getOwnerId())
+                .orElseThrow(() -> new RuntimeException("Owner not found"));
+
+        return new StadiumWithOwnerDTO(stadium, owner);
+    }
+
+
 
 }
