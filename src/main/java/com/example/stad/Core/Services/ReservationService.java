@@ -26,7 +26,7 @@ public class ReservationService {
         List<DateOverride> overrides = scheduleService.getOverridesForStadium(stadiumId);
         List<Reservation> reservations = reservationRepository.findByStadiumIdAndDate(stadiumId, date);
 
-        // Check if there is a date override for the given date
+        // Check if the date is covered by overrides
         DateOverride matchingOverride = overrides.stream()
                 .filter(override -> override.getDate().equals(date.toString()))
                 .findFirst()
@@ -37,24 +37,27 @@ public class ReservationService {
             return List.of("Stadium is closed on this date.");
         }
 
-        // Use override times if available; otherwise, match the schedule for the day
         LocalTime startTime;
         LocalTime endTime;
 
         if (matchingOverride != null) {
+            // Use override times if available
             startTime = LocalTime.parse(matchingOverride.getStartTime());
             endTime = LocalTime.parse(matchingOverride.getEndTime());
         } else {
-            // Match schedule for the day of the week
+            // Check if the date is within any schedule's range
             Schedule matchingSchedule = schedules.stream()
-                    .filter(schedule -> schedule.getDaysOfWeek().contains(date.getDayOfWeek().name()))
+                    .filter(schedule -> schedule.getDaysOfWeek().contains(date.getDayOfWeek().name()) &&
+                            !date.isBefore(LocalDate.parse(schedule.getFromDate())) &&
+                            !date.isAfter(LocalDate.parse(schedule.getToDate())))
                     .findFirst()
                     .orElse(null);
 
             if (matchingSchedule == null) {
-                return List.of("No schedule found for this day.");
+                return List.of("No schedule found for this date.");
             }
 
+            // Use schedule times
             startTime = LocalTime.parse(matchingSchedule.getStartTime());
             endTime = LocalTime.parse(matchingSchedule.getEndTime());
         }
@@ -70,7 +73,8 @@ public class ReservationService {
 
             // Find a reservation for the current slot
             Reservation reservedSlot = reservations.stream()
-                    .filter(reservation -> reservation.getStartTime().equals(slotStartTime) &&
+                    .filter(reservation -> reservation.getDate().equals(date) &&
+                            reservation.getStartTime().equals(slotStartTime) &&
                             reservation.getEndTime().equals(slotEndTime) &&
                             !reservation.isCanceled())
                     .findFirst()
@@ -93,7 +97,6 @@ public class ReservationService {
 
         return hourlySlots;
     }
-
 
 
     public Reservation createReservation(Reservation reservation) {
