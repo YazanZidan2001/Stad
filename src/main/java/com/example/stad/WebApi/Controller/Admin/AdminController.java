@@ -109,4 +109,16 @@ public class AdminController extends SessionManagement {
         StadiumWithOwnerDTO stadiumWithOwner = stadiumService.getStadiumWithOwnerDTO(stadiumId);
         return ResponseEntity.ok(stadiumWithOwner);
     }
+
+    // Fetch owner details by stadiumId
+    @GetMapping("/stadium-owner/{stadiumId}")
+    public ResponseEntity<User> getOwnerByStadiumId(@PathVariable String stadiumId, HttpServletRequest request) {
+        String token = authenticationService.extractToken(request);
+        User admin = authenticationService.extractUserFromToken(token);
+        validateLoggedInAdmin(admin);
+
+        User owner = stadiumService.getOwnerByStadiumId(stadiumId);
+        return ResponseEntity.ok(owner);
+    }
+
 }

@@ -223,4 +223,16 @@ public class StadiumController extends SessionManagement {
         stadiumService.deleteStadium(stadiumId, owner.getId());
         return ResponseEntity.ok("Stadium deleted successfully");
     }
+
+    // Fetch customer information by userId
+    @GetMapping("/customer/{userId}")
+    public ResponseEntity<User> getCustomerById(@PathVariable String userId, HttpServletRequest request) {
+        String token = authenticationService.extractToken(request);
+        User owner = authenticationService.extractUserFromToken(token);
+        validateLoggedInOwner(owner);
+
+        User customer = stadiumService.getCustomerById(userId);
+        return ResponseEntity.ok(customer);
+    }
+
 }

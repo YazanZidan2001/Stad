@@ -121,6 +121,22 @@ public class StadiumService {
         return new StadiumWithOwnerDTO(stadium, owner);
     }
 
+    public User getOwnerByStadiumId(String stadiumId) {
+        // Fetch the stadium by ID
+        Stadium stadium = stadiumRepository.findById(stadiumId)
+                .orElseThrow(() -> new RuntimeException("Stadium not found"));
+
+        // Fetch the owner by the stadium's ownerId
+        return userRepository.findById(stadium.getOwnerId())
+                .orElseThrow(() -> new RuntimeException("Owner not found"));
+    }
+
+
+    public User getCustomerById(String userId) {
+        // Fetch user by ID
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Customer not found"));
+    }
 
 
 }
